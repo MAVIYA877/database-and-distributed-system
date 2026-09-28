@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hour 3 — Resource Sharing &amp; Web Challenges</title>
+<style>
+  :root{
+    --bg:#282a36;
+    --bg-alt:#21222c;
+    --panel:#2f3140;
+    --line:#44475a;
+    --fg:#f8f8f2;
+    --muted:#a9adc7;
+    --comment:#6272a4;
+    --cyan:#8be9fd;
+    --green:#50fa7b;
+    --amber:#ffb86c;
+    --pink:#ff79c6;
+    --purple:#bd93f9;
+    --red:#ff5555;
+    --yellow:#f1fa8c;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:radial-gradient(circle at 15% 10%, #31334a 0%, var(--bg) 45%) fixed;
+    color:var(--fg);
+    font-family:'Segoe UI', Roboto, -apple-system, sans-serif;
+    overflow:hidden;
+  }
+  .deck{position:relative;width:100vw;height:100vh;}
+  .slide{
+    position:absolute;inset:0;
+    display:none;
+    flex-direction:column;
+    padding:56px 80px 90px;
+    animation:fadeIn .45s ease;
+  }
+  .slide.active{display:flex;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+  .kicker{
+    color:var(--amber);
+    font-size:14px;
+    letter-spacing:2px;
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  h1{font-size:40px;margin:0 0 6px;color:var(--fg);}
+  h2{font-size:30px;margin:0 0 18px;color:var(--fg);}
+  h3{font-size:20px;margin:0 0 10px;color:var(--cyan);}
+  p{line-height:1.6;color:var(--muted);font-size:16px;}
+  .lead{font-size:19px;color:var(--fg);max-width:760px;}
+
+  /* NAV */
+  .topbar{
+    position:fixed;top:0;left:0;right:0;height:6px;background:var(--line);z-index:50;
+  }
+  .topbar-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--pink));transition:width .3s ease;}
+  .navbar{
+    position:fixed;bottom:0;left:0;right:0;
+    height:64px;
+    background:rgba(33,34,44,.92);
+    border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 32px;
+    backdrop-filter:blur(6px);
+    z-index:50;
+  }
+  .navbar .brand{font-size:13px;color:var(--comment);}
+  .navbar .brand b{color:var(--amber);}
+  .nav-controls{display:flex;align-items:center;gap:14px;}
+  .nav-btn{
+    background:var(--panel);border:1px solid var(--line);color:var(--fg);
+    padding:8px 18px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;
+    transition:.2s;
+  }
+  .nav-btn:hover{border-color:var(--amber);color:var(--amber);}
+  .nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+  .slide-counter{color:var(--muted);font-size:13px;min-width:60px;text-align:center;}
+  .dots{display:flex;gap:6px;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--line);cursor:pointer;transition:.2s;}
+  .dot.active{background:var(--amber);width:20px;border-radius:4px;}
+
+  /* GRIDS */
+  .grid{display:grid;gap:16px;}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:repeat(2,1fr);}
+  .content{flex:1;overflow-y:auto;padding-right:8px;}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px 20px;
+  }
+  .resource-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;text-align:center;transition:.2s;
+  }
+  .resource-card:hover{border-color:var(--amber);transform:translateY(-3px);}
+  .resource-card .ic{font-size:26px;margin-bottom:8px;display:block;}
+  .resource-card .lbl{font-size:14px;color:var(--fg);font-weight:600;}
+
+  /* CODE BLOCKS */
+  .code-wrap{
+    background:var(--bg-alt);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .code-head{
+    display:flex;align-items:center;gap:8px;
+    padding:10px 14px;background:#1c1d27;border-bottom:1px solid var(--line);
+  }
+  .code-head .dotc{width:11px;height:11px;border-radius:50%;}
+  .code-head .filename{margin-left:8px;color:var(--comment);font-size:12px;font-family:'Consolas','Courier New',monospace;}
+  pre{margin:0;padding:16px 20px;overflow-x:auto;font-family:'Consolas','Courier New',monospace;font-size:13.5px;line-height:1.65;}
+  code{color:var(--fg);}
+  .tok-kw{color:var(--pink);}
+  .tok-type{color:var(--cyan);}
+  .tok-str{color:var(--yellow);}
+  .tok-cm{color:var(--comment);font-style:italic;}
+  .tok-fn{color:var(--green);}
+  .tok-num{color:var(--purple);}
+
+  .line-explainer{
+    display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line);
+    align-items:flex-start;
+  }
+  .line-explainer:last-child{border-bottom:none;}
+  .line-explainer .ln{
+    background:var(--bg-alt);color:var(--amber);font-family:'Consolas',monospace;
+    font-size:12px;padding:3px 8px;border-radius:5px;white-space:nowrap;border:1px solid var(--line);
+  }
+  .line-explainer .desc{font-size:14px;color:var(--muted);line-height:1.5;}
+  .line-explainer .desc b{color:var(--fg);}
+
+  /* DIAGRAM */
+  .diagram{
+    display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 0;
+  }
+  .diag-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;}
+  .node{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:12px 22px;font-weight:600;font-size:14px;color:var(--fg);
+    position:relative;
+  }
+  .node.app{border-color:var(--purple);color:var(--purple);}
+  .node.svc{border-color:var(--cyan);color:var(--cyan);}
+  .node.db{border-color:var(--amber);color:var(--amber);font-size:16px;padding:16px 32px;}
+  .connector{width:2px;height:26px;background:var(--line);}
+  .connector.slant-left{transform:rotate(20deg);}
+  .connector.slant-right{transform:rotate(-20deg);}
+  .fan{display:flex;justify-content:center;align-items:flex-end;height:26px;gap:0;position:relative;width:280px;}
+  .fan .line{position:absolute;bottom:0;width:2px;height:26px;background:var(--line);}
+
+  /* PROBLEM SLIDES */
+  .problem-tag{
+    display:inline-block;background:rgba(255,85,85,.12);color:var(--red);
+    border:1px solid rgba(255,85,85,.4);padding:4px 12px;border-radius:20px;
+    font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:14px;
+  }
+  .balance-box{
+    background:var(--bg-alt);border:1px solid var(--line);border-radius:10px;
+    padding:16px 20px;min-width:200px;text-align:center;
+  }
+  .balance-box .who{color:var(--cyan);font-weight:700;font-size:14px;margin-bottom:4px;}
+  .balance-box .amt{font-size:26px;font-weight:700;color:var(--fg);font-family:'Consolas',monospace;}
+  .arrow-down{color:var(--comment);font-size:20px;text-align:center;margin:6px 0;}
+  .result-box{
+    border-radius:10px;padding:16px 20px;text-align:center;font-weight:700;font-size:18px;
+    border:1px solid; margin-top:6px;
+  }
+  .result-bad{background:rgba(255,85,85,.1);border-color:var(--red);color:var(--red);}
+  .result-good{background:rgba(80,250,123,.1);border-color:var(--green);color:var(--green);}
+
+  /* Interactive concurrency demo */
+  .demo-btn{
+    background:linear-gradient(135deg,var(--amber),#ff9d4d);color:#282a36;border:none;
+    padding:10px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;
+    transition:.2s;
+  }
+  .demo-btn:hover{filter:brightness(1.1);transform:translateY(-1px);}
+  .demo-btn:disabled{opacity:.4;cursor:not-allowed;}
+  .demo-panel{display:flex;gap:24px;align-items:center;flex-wrap:wrap;}
+  .log-box{
+    background:var(--bg-alt);border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;font-family:'Consolas',monospace;font-size:13px;
+    min-height:130px;flex:1;min-width:280px;color:var(--muted);
+  }
+  .log-box .entry{padding:2px 0;}
+  .log-box .entry.warn{color:var(--red);}
+  .log-box .entry.ok{color:var(--green);}
+
+  /* Web challenges */
+  .challenge-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;position:relative;overflow:hidden;
+  }
+  .challenge-card .ico{font-size:22px;}
+  .challenge-card h4{margin:8px 0 6px;font-size:16px;color:var(--fg);}
+  .challenge-card p{font-size:13.5px;margin:0;}
+  .challenge-card .bar{
+    position:absolute;left:0;top:0;bottom:0;width:4px;
+  }
+
+  /* Load balancer sim */
+  .server-row{display:flex;gap:24px;justify-content:center;margin:24px 0;}
+  .server{
+    width:120px;background:var(--bg-alt);border:2px solid var(--line);border-radius:10px;
+    padding:16px 10px;text-align:center;transition:.25s;
+  }
+  .server .icon{font-size:26px;}
+  .server .name{font-size:13px;font-weight:700;margin-top:6px;color:var(--fg);}
+  .server .count{font-size:22px;font-weight:700;color:var(--amber);margin-top:8px;}
+  .server.hit{border-color:var(--green);box-shadow:0 0 20px rgba(80,250,123,.35);transform:scale(1.06);}
+  .request-log{
+    background:var(--bg-alt);border:1px solid var(--line);border-radius:8px;padding:12px 16px;
+    font-family:'Consolas',monospace;font-size:12.5px;height:110px;overflow-y:auto;color:var(--muted);
+  }
+
+  /* Quiz */
+  .quiz-q{margin-bottom:22px;}
+  .quiz-q .q-title{font-size:16px;color:var(--fg);font-weight:600;margin-bottom:10px;}
+  .opt{
+    display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);
+    color:var(--fg);padding:10px 14px;border-radius:8px;margin-bottom:8px;cursor:pointer;font-size:14px;
+    transition:.15s;
+  }
+  .opt:hover{border-color:var(--cyan);}
+  .opt.correct{border-color:var(--green);background:rgba(80,250,123,.12);color:var(--green);}
+  .opt.incorrect{border-color:var(--red);background:rgba(255,85,85,.12);color:var(--red);}
+  .opt.disabled{pointer-events:none;}
+  .quiz-score{color:var(--amber);font-weight:700;font-size:16px;}
+
+  .badge{
+    display:inline-block;background:rgba(189,147,249,.15);color:var(--purple);
+    border:1px solid rgba(189,147,249,.4);padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;
+    margin-bottom:14px;letter-spacing:.5px;
+  }
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  @media (max-width:900px){
+    .slide{padding:36px 24px 90px;}
+    .grid-4{grid-template-columns:repeat(2,1fr);}
+    .grid-3{grid-template-columns:repeat(2,1fr);}
+    .grid-2{grid-template-columns:1fr;}
+    h1{font-size:28px;}
+    h2{font-size:22px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-fill" id="progressFill"></div></div>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: TITLE -->
+  <section class="slide active">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;">
+      <div class="kicker">MERN STACK BOOTCAMP · DISTRIBUTED SYSTEMS FOUNDATIONS</div>
+      <h1 style="font-size:52px;">Hour 3</h1>
+      <h2 style="color:var(--amber);font-size:34px;">Resource Sharing &amp; Web Challenges</h2>
+      <p class="lead">How multiple users and services safely share files, databases, APIs and compute — and the real-world engineering problems that sharing creates.</p>
+      <div style="margin-top:28px;display:flex;gap:12px;flex-wrap:wrap;">
+        <div class="card" style="padding:10px 18px;">📁 Shared Resources</div>
+        <div class="card" style="padding:10px 18px;">⚔️ Concurrency Problems</div>
+        <div class="card" style="padding:10px 18px;">🌐 Web-Scale Challenges</div>
+        <div class="card" style="padding:10px 18px;">⚙️ Load Balancer Demo</div>
+      </div>
+    </div>
+    <p style="color:var(--comment);font-size:13px;">Instructor: Manish Rai</p>
+  </section>
+
+  <!-- SLIDE 2: AGENDA -->
+  <section class="slide">
+    <div class="kicker">SESSION MAP</div>
+    <h2>What we'll cover this hour</h2>
+    <div class="content">
+      <div class="grid grid-2" style="gap:16px;">
+        <div class="card"><h3>3.1 Resource Sharing</h3><p>What counts as a shared resource in a distributed system, and why sharing is the whole point of building one.</p></div>
+        <div class="card"><h3>3.2 Shared Database Example</h3><p>A real architecture pattern — many services, one database — and why that creates risk.</p></div>
+        <div class="card"><h3>3.3 Resource Sharing Problems</h3><p>Concurrent access, resource failure, contention, and consistency — four problems every distributed system must solve.</p></div>
+        <div class="card"><h3>3.4 Web Challenges</h3><p>Scalability, availability, latency, security, reliability, consistency — the six pillars of modern web systems.</p></div>
+        <div class="card" style="grid-column:1/-1;"><h3>3.5 Demo — Round-Robin Load Balancer</h3><p>A working Java simulation that distributes requests across three servers, and the industry concept behind it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 3: 3.1 RESOURCE SHARING INTRO -->
+  <section class="slide">
+    <div class="badge">3.1 RESOURCE SHARING</div>
+    <h2>Why distributed systems exist</h2>
+    <div class="content">
+      <p class="lead">A distributed system allows multiple users or processes to access <b style="color:var(--fg);">shared resources</b> — instead of every user needing their own private copy of everything.</p>
+      <p style="margin-top:16px;">Think of your bootcamp project, SkillHub LMS: hundreds of students hit the same server, the same course database, and the same file storage — at the same time. That sharing is what makes the system distributed, and it's also where every hard problem in this hour comes from.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: RESOURCE TYPES GRID -->
+  <section class="slide">
+    <div class="badge">3.1 RESOURCE SHARING</div>
+    <h2>What counts as a "resource"?</h2>
+    <div class="content">
+      <div class="grid grid-4">
+        <div class="resource-card"><span class="ic">📄</span><span class="lbl">Files</span></div>
+        <div class="resource-card"><span class="ic">🗄️</span><span class="lbl">Databases</span></div>
+        <div class="resource-card"><span class="ic">🖨️</span><span class="lbl">Printers</span></div>
+        <div class="resource-card"><span class="ic">💾</span><span class="lbl">Storage</span></div>
+        <div class="resource-card"><span class="ic">🔌</span><span class="lbl">APIs</span></div>
+        <div class="resource-card"><span class="ic">🧮</span><span class="lbl">CPU</span></div>
+        <div class="resource-card"><span class="ic">🧠</span><span class="lbl">Memory</span></div>
+        <div class="resource-card"><span class="ic">⚙️</span><span class="lbl">Services</span></div>
+      </div>
+      <p style="margin-top:22px;">Anything that more than one user or process needs to read, write, or use at the same time is a shared resource — and every one of them can be a bottleneck.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 5: 3.2 SHARED DATABASE EXAMPLE -->
+  <section class="slide">
+    <div class="badge">3.2 EXAMPLE: SHARED DATABASE</div>
+    <h2>One database, many services</h2>
+    <div class="content">
+      <div class="diagram">
+        <div class="node app">Applications</div>
+        <div class="fan">
+          <div class="line" style="left:20px;transform:rotate(18deg);"></div>
+          <div class="line" style="left:139px;"></div>
+          <div class="line" style="right:20px;transform:rotate(-18deg);"></div>
+        </div>
+        <div class="diag-row">
+          <div class="node svc">Service A</div>
+          <div class="node svc">Service B</div>
+          <div class="node svc">Service C</div>
+        </div>
+        <div class="fan">
+          <div class="line" style="left:20px;transform:rotate(-18deg);"></div>
+          <div class="line" style="left:139px;"></div>
+          <div class="line" style="right:20px;transform:rotate(18deg);"></div>
+        </div>
+        <div class="node db">🗄️ Database</div>
+      </div>
+      <p class="lead" style="text-align:center;margin-top:8px;">All three services may need the <b style="color:var(--fg);">same customer data</b> — at the same moment.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: PROBLEM 1 - CONCURRENT ACCESS -->
+  <section class="slide">
+    <div class="badge">3.3 RESOURCE SHARING PROBLEMS</div>
+    <span class="problem-tag">PROBLEM 1 — CONCURRENT ACCESS</span>
+    <h2>Two users update the same account</h2>
+    <div class="content">
+      <p>Both User A and User B start with the same balance and withdraw money at almost the same instant. Click the button to run the scenario.</p>
+      <div class="demo-panel" style="margin-top:12px;">
+        <div style="display:flex;gap:20px;">
+          <div class="balance-box"><div class="who">👤 User A sees</div><div class="amt" id="balA">₹1000</div></div>
+          <div class="balance-box"><div class="who">👤 User B sees</div><div class="amt" id="balB">₹1000</div></div>
+        </div>
+        <div class="log-box" id="raceLog">
+          <div class="entry">Ready. Both users start from ₹1000.</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:12px;align-items:center;">
+        <button class="demo-btn" id="raceBtn" onclick="runRace()">▶ Simulate concurrent withdrawal</button>
+        <span id="raceResultLabel" style="font-size:14px;color:var(--muted);"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: PROBLEM 2 - RESOURCE FAILURE -->
+  <section class="slide">
+    <div class="badge">3.3 RESOURCE SHARING PROBLEMS</div>
+    <span class="problem-tag">PROBLEM 2 — RESOURCE FAILURE</span>
+    <h2>What happens if the database server crashes?</h2>
+    <div class="content">
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>💥 The failure</h3>
+          <p>Every service that depends on that one database — Service A, B, and C — instantly loses the ability to read or write customer data. One crash, three outages.</p>
+        </div>
+        <div class="card">
+          <h3>🎯 What students should ask</h3>
+          <p>Is there a backup or replica? Do requests queue and retry, or fail immediately? Does the whole application go down, or just the feature that needed data?</p>
+        </div>
+      </div>
+      <p style="margin-top:18px;">This is why real systems don't rely on a single point of failure — they use replication, failover databases, and retries instead of hoping the server never goes down.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 8: PROBLEM 3 - RESOURCE CONTENTION -->
+  <section class="slide">
+    <div class="badge">3.3 RESOURCE SHARING PROBLEMS</div>
+    <span class="problem-tag">PROBLEM 3 — RESOURCE CONTENTION</span>
+    <h2>10,000 users want the same resource — simultaneously</h2>
+    <div class="content">
+      <div class="card">
+        <p class="lead" style="margin:0;">Imagine SkillHub LMS opens registration for a free workshop, and 10,000 students click "Enroll" in the same second. They're all fighting over the same seats, the same server threads, and the same database rows.</p>
+      </div>
+      <div class="grid grid-3" style="margin-top:16px;">
+        <div class="card"><h3>🐌 Slower responses</h3><p>Every request waits longer as the resource queues up.</p></div>
+        <div class="card"><h3>🔒 Locking</h3><p>The database may lock rows to prevent conflicting writes, blocking other requests.</p></div>
+        <div class="card"><h3>💣 Overload</h3><p>Without limits, the server can run out of memory or connections entirely.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 9: PROBLEM 4 - CONSISTENCY -->
+  <section class="slide">
+    <div class="badge">3.3 RESOURCE SHARING PROBLEMS</div>
+    <span class="problem-tag">PROBLEM 4 — CONSISTENCY</span>
+    <h2>Two servers, two different answers</h2>
+    <div class="content">
+      <div style="display:flex;gap:24px;justify-content:center;flex-wrap:wrap;">
+        <div class="balance-box"><div class="who">🖥️ Server A</div><div class="amt">₹1000</div></div>
+        <div class="balance-box"><div class="who">🖥️ Server B</div><div class="amt">₹800</div></div>
+      </div>
+      <p class="lead" style="text-align:center;margin-top:18px;">Which one is correct?</p>
+      <p style="text-align:center;max-width:640px;margin:6px auto 0;">This happens when data is copied or cached across multiple servers and one of them hasn't received the latest update yet. Distributed systems must decide: do we wait for every copy to agree (strong consistency), or accept a short delay before they catch up (eventual consistency)?</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 10: 3.4 WEB CHALLENGES -->
+  <section class="slide">
+    <div class="badge">3.4 WEB CHALLENGES</div>
+    <h2>What modern web systems must handle</h2>
+    <div class="content">
+      <div class="grid grid-3">
+        <div class="challenge-card"><div class="bar" style="background:var(--cyan);"></div><span class="ico">📈</span><h4>Scalability</h4><p>Handling millions of requests without falling over.</p></div>
+        <div class="challenge-card"><div class="bar" style="background:var(--green);"></div><span class="ico">🟢</span><h4>Availability</h4><p>Services should remain up and reachable, even during failures.</p></div>
+        <div class="challenge-card"><div class="bar" style="background:var(--amber);"></div><span class="ico">⚡</span><h4>Latency</h4><p>Users expect fast responses — every millisecond is felt.</p></div>
+        <div class="challenge-card"><div class="bar" style="background:var(--pink);"></div><span class="ico">🔐</span><h4>Security</h4><p>Authentication, authorization, and encryption at every layer.</p></div>
+        <div class="challenge-card"><div class="bar" style="background:var(--purple);"></div><span class="ico">🛡️</span><h4>Reliability</h4><p>Failures must be expected, detected, and handled gracefully.</p></div>
+        <div class="challenge-card"><div class="bar" style="background:var(--red);"></div><span class="ico">🔄</span><h4>Consistency</h4><p>Different copies of the same data must be managed correctly.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 11: 3.5 LOAD BALANCER CODE -->
+  <section class="slide">
+    <div class="badge">3.5 SIMPLE LOAD BALANCER SIMULATION</div>
+    <h2>Round-robin load balancer in Java</h2>
+    <div class="content">
+      <div class="code-wrap">
+        <div class="code-head">
+          <div class="dotc" style="background:#ff5f56;"></div>
+          <div class="dotc" style="background:#ffbd2e;"></div>
+          <div class="dotc" style="background:#27c93f;"></div>
+          <span class="filename">LoadBalancer.java</span>
+        </div>
+        <pre><code><span class="tok-kw">class</span> <span class="tok-type">Server</span> {
+
+    <span class="tok-kw">private</span> <span class="tok-type">String</span> name;
+
+    <span class="tok-kw">public</span> <span class="tok-fn">Server</span>(<span class="tok-type">String</span> name) {
+        <span class="tok-kw">this</span>.name = name;
+    }
+
+    <span class="tok-kw">public</span> <span class="tok-kw">void</span> <span class="tok-fn">handle</span>(<span class="tok-type">String</span> request) {
+        <span class="tok-type">System</span>.out.println(name + <span class="tok-str">" handled "</span> + request);
+    }
+}
+
+<span class="tok-kw">public class</span> <span class="tok-type">LoadBalancer</span> {
+
+    <span class="tok-kw">private</span> <span class="tok-type">Server</span>[] servers;
+    <span class="tok-kw">private</span> <span class="tok-kw">int</span> current = <span class="tok-num">0</span>;
+
+    <span class="tok-kw">public</span> <span class="tok-fn">LoadBalancer</span>(<span class="tok-type">Server</span>[] servers) {
+        <span class="tok-kw">this</span>.servers = servers;
+    }
+
+    <span class="tok-kw">public</span> <span class="tok-kw">void</span> <span class="tok-fn">sendRequest</span>(<span class="tok-type">String</span> request) {
+        servers[current].handle(request);
+        current = (current + <span class="tok-num">1</span>) % servers.length;
+    }
+
+    <span class="tok-kw">public static</span> <span class="tok-kw">void</span> <span class="tok-fn">main</span>(<span class="tok-type">String</span>[] args) {
+        <span class="tok-type">Server</span>[] servers = {
+                <span class="tok-kw">new</span> <span class="tok-fn">Server</span>(<span class="tok-str">"Server-1"</span>),
+                <span class="tok-kw">new</span> <span class="tok-fn">Server</span>(<span class="tok-str">"Server-2"</span>),
+                <span class="tok-kw">new</span> <span class="tok-fn">Server</span>(<span class="tok-str">"Server-3"</span>)
+        };
+
+        <span class="tok-type">LoadBalancer</span> loadBalancer = <span class="tok-kw">new</span> <span class="tok-fn">LoadBalancer</span>(servers);
+
+        <span class="tok-kw">for</span> (<span class="tok-kw">int</span> i = <span class="tok-num">1</span>; i &lt;= <span class="tok-num">10</span>; i++) {
+            loadBalancer.sendRequest(<span class="tok-str">"Request-"</span> + i);
+        }
+    }
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 12: LINE EXPLAINER -->
+  <section class="slide">
+    <div class="badge">3.5 SIMPLE LOAD BALANCER SIMULATION</div>
+    <h2>How the round-robin logic works</h2>
+    <div class="content">
+      <div class="card">
+        <div class="line-explainer"><span class="ln">Server class</span><span class="desc"><b>Server</b> just knows its own name and prints which request it handled — a stand-in for a real backend instance.</span></div>
+        <div class="line-explainer"><span class="ln">current = 0</span><span class="desc">The load balancer keeps a pointer, <b>current</b>, to remember which server should get the next request.</span></div>
+        <div class="line-explainer"><span class="ln">sendRequest()</span><span class="desc">Hands the request to <b>servers[current]</b>, then moves the pointer forward.</span></div>
+        <div class="line-explainer"><span class="ln">% servers.length</span><span class="desc">The modulo operator wraps the pointer back to <b>0</b> after the last server — this is the entire round-robin trick.</span></div>
+        <div class="line-explainer"><span class="ln">for loop (10x)</span><span class="desc">Ten requests are fired, cycling evenly across all three servers.</span></div>
+      </div>
+      <h3 style="margin-top:20px;">Expected output</h3>
+      <div class="code-wrap">
+        <pre><code>Server-1 handled Request-1
+Server-2 handled Request-2
+Server-3 handled Request-3
+Server-1 handled Request-4
+...</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 13: LIVE SIMULATION -->
+  <section class="slide">
+    <div class="badge">3.5 SIMPLE LOAD BALANCER SIMULATION</div>
+    <h2>Try it — send requests live</h2>
+    <div class="content">
+      <div class="server-row" id="serverRow">
+        <div class="server" id="srv0"><div class="icon">🖥️</div><div class="name">Server-1</div><div class="count" id="cnt0">0</div></div>
+        <div class="server" id="srv1"><div class="icon">🖥️</div><div class="name">Server-2</div><div class="count" id="cnt1">0</div></div>
+        <div class="server" id="srv2"><div class="icon">🖥️</div><div class="name">Server-3</div><div class="count" id="cnt2">0</div></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:12px;">
+        <button class="demo-btn" onclick="sendReq()">▶ Send request</button>
+        <button class="demo-btn" style="background:var(--line);color:var(--fg);" onclick="resetLB()">↺ Reset</button>
+      </div>
+      <div class="request-log" id="lbLog"><div>Ready. Click "Send request" to route traffic round-robin.</div></div>
+      <p style="margin-top:14px;font-size:13px;color:var(--comment);">Industry concept: this is <b style="color:var(--amber);">round-robin load balancing</b> — the simplest strategy for spreading traffic evenly, used as the baseline before weighted, least-connections, or health-aware balancing.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 14: RECAP -->
+  <section class="slide">
+    <div class="kicker">RECAP</div>
+    <h2>Hour 3 — Key takeaways</h2>
+    <div class="content">
+      <div class="grid grid-2">
+        <div class="card"><h3>🔁 Sharing is the point</h3><p>Distributed systems exist so users and services can share files, databases, APIs, CPU, and more.</p></div>
+        <div class="card"><h3>⚠️ Sharing creates risk</h3><p>Concurrent access, resource failure, contention, and consistency are the four core problems sharing introduces.</p></div>
+        <div class="card"><h3>🌐 Web-scale demands</h3><p>Scalability, availability, latency, security, reliability, and consistency must all be engineered for — not assumed.</p></div>
+        <div class="card"><h3>⚙️ Load balancing</h3><p>Round-robin distribution is the simplest way to spread load evenly across multiple servers.</p></div>
+      </div>
+      <p class="lead" style="margin-top:20px;">Next hour: <b style="color:var(--fg);">Architectural Models</b> — client-server, microservices, and peer-to-peer patterns.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 15: QUIZ -->
+  <section class="slide">
+    <div class="kicker">QUICK CHECK</div>
+    <h2>Hour 3 quiz</h2>
+    <div class="content" id="quizContainer"></div>
+    <div style="margin-top:6px;" id="quizScoreRow"></div>
+  </section>
+
+</div>
+
+<div class="navbar">
+  <div class="brand">MERN Stack Bootcamp · <b>Hour 3</b> — Resource Sharing &amp; Web Challenges</div>
+  <div class="nav-controls">
+    <button class="nav-btn" id="prevBtn" onclick="goTo(current-1)">← Prev</button>
+    <div class="dots" id="dots"></div>
+    <span class="slide-counter" id="counter">1 / 15</span>
+    <button class="nav-btn" id="nextBtn" onclick="goTo(current+1)">Next →</button>
+  </div>
+</div>
+
+<script>
+/* ---------- SLIDE NAVIGATION ---------- */
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+let current = 0;
+
+const dotsWrap = document.getElementById('dots');
+for(let i=0;i<total;i++){
+  const d = document.createElement('div');
+  d.className = 'dot' + (i===0?' active':'');
+  d.onclick = () => goTo(i);
+  dotsWrap.appendChild(d);
+}
+const dotEls = document.querySelectorAll('.dot');
+
+function goTo(i){
+  if(i<0||i>=total) return;
+  slides[current].classList.remove('active');
+  dotEls[current].classList.remove('active');
+  current = i;
+  slides[current].classList.add('active');
+  dotEls[current].classList.add('active');
+  document.getElementById('counter').textContent = (current+1)+' / '+total;
+  document.getElementById('prevBtn').disabled = current===0;
+  document.getElementById('nextBtn').disabled = current===total-1;
+  document.getElementById('progressFill').style.width = ((current+1)/total*100)+'%';
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight') goTo(current+1);
+  if(e.key==='ArrowLeft') goTo(current-1);
+});
+goTo(0);
+
+/* ---------- PROBLEM 1: CONCURRENCY RACE DEMO ---------- */
+function runRace(){
+  const btn = document.getElementById('raceBtn');
+  const log = document.getElementById('raceLog');
+  const balA = document.getElementById('balA');
+  const balB = document.getElementById('balB');
+  const resultLabel = document.getElementById('raceResultLabel');
+  btn.disabled = true;
+  log.innerHTML = '';
+  balA.textContent = '₹1000';
+  balB.textContent = '₹1000';
+  resultLabel.textContent = '';
+
+  const steps = [
+    {t:400, fn:()=>addLog(log,'User A reads balance → ₹1000')},
+    {t:800, fn:()=>addLog(log,'User B reads balance → ₹1000')},
+    {t:1300, fn:()=>{addLog(log,'User A withdraws ₹700 → writes ₹300'); balA.textContent='₹300';}},
+    {t:1750, fn:()=>{addLog(log,'User B withdraws ₹500 → writes ₹500 (overwrites A!)','warn'); balB.textContent='₹500';}},
+    {t:2300, fn:()=>{
+      addLog(log,'Final stored balance = ₹500', 'warn');
+      addLog(log,'Expected balance = ₹1000 − ₹700 − ₹500 = -₹200 (or a rejected 2nd withdrawal)','warn');
+      resultLabel.innerHTML = '⚠️ Lost update — one withdrawal was silently overwritten.';
+      resultLabel.style.color = 'var(--red)';
+      btn.disabled = false;
+    }}
+  ];
+  steps.forEach(s=> setTimeout(s.fn, s.t));
+}
+function addLog(box, text, cls){
+  const div = document.createElement('div');
+  div.className = 'entry' + (cls? ' '+cls : '');
+  div.textContent = '› ' + text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ---------- LOAD BALANCER LIVE SIM ---------- */
+let lbCurrent = 0;
+let lbReqCount = 0;
+const lbCounts = [0,0,0];
+function sendReq(){
+  lbReqCount++;
+  const idx = lbCurrent;
+  lbCounts[idx]++;
+  document.getElementById('cnt'+idx).textContent = lbCounts[idx];
+
+  document.querySelectorAll('.server').forEach(s=>s.classList.remove('hit'));
+  const el = document.getElementById('srv'+idx);
+  el.classList.add('hit');
+  setTimeout(()=>el.classList.remove('hit'), 500);
+
+  const log = document.getElementById('lbLog');
+  const div = document.createElement('div');
+  div.textContent = 'Server-'+(idx+1)+' handled Request-'+lbReqCount;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+
+  lbCurrent = (lbCurrent + 1) % 3;
+}
+function resetLB(){
+  lbCurrent = 0; lbReqCount = 0;
+  lbCounts[0]=lbCounts[1]=lbCounts[2]=0;
+  document.getElementById('cnt0').textContent='0';
+  document.getElementById('cnt1').textContent='0';
+  document.getElementById('cnt2').textContent='0';
+  document.querySelectorAll('.server').forEach(s=>s.classList.remove('hit'));
+  document.getElementById('lbLog').innerHTML = '<div>Ready. Click "Send request" to route traffic round-robin.</div>';
+}
+
+/* ---------- QUIZ ---------- */
+const quizData = [
+  {
+    q: "Which of these is NOT typically listed as a shared resource in a distributed system?",
+    opts: ["Database", "Printer", "Local variable inside a function", "API"],
+    correct: 2
+  },
+  {
+    q: "In the concurrent-withdrawal example, what causes the final balance to be wrong?",
+    opts: [
+      "The database server crashed",
+      "Both users read the same starting balance before either write completed",
+      "The network was too slow",
+      "The users entered the wrong amount"
+    ],
+    correct: 1
+  },
+  {
+    q: "10,000 users requesting the same resource at once is an example of:",
+    opts: ["Consistency failure", "Resource contention", "Clock drift", "Latency spike"],
+    correct: 1
+  },
+  {
+    q: "Two servers showing different balances (₹1000 vs ₹800) for the same account is a problem of:",
+    opts: ["Scalability", "Security", "Consistency", "Availability"],
+    correct: 2
+  },
+  {
+    q: "In the Java load balancer demo, what does `current = (current + 1) % servers.length` do?",
+    opts: [
+      "Randomly picks a server",
+      "Always sends requests to the first server",
+      "Wraps the pointer back to 0 after the last server, enabling round-robin",
+      "Counts the total number of requests"
+    ],
+    correct: 2
+  }
+];
+
+let quizScore = 0;
+let quizAnswered = 0;
+const quizContainer = document.getElementById('quizContainer');
+quizData.forEach((item, qi)=>{
+  const wrap = document.createElement('div');
+  wrap.className = 'quiz-q';
+  const title = document.createElement('div');
+  title.className = 'q-title';
+  title.textContent = (qi+1) + '. ' + item.q;
+  wrap.appendChild(title);
+  item.opts.forEach((optText, oi)=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.textContent = optText;
+    btn.onclick = () => {
+      const allOpts = wrap.querySelectorAll('.opt');
+      allOpts.forEach(o=>o.classList.add('disabled'));
+      if(oi === item.correct){
+        btn.classList.add('correct');
+        quizScore++;
+      } else {
+        btn.classList.add('incorrect');
+        allOpts[item.correct].classList.add('correct');
+      }
+      quizAnswered++;
+      updateScore();
+    };
+    wrap.appendChild(btn);
+  });
+  quizContainer.appendChild(wrap);
+});
+function updateScore(){
+  const row = document.getElementById('quizScoreRow');
+  row.innerHTML = '<span class="quiz-score">Score: '+quizScore+' / '+quizData.length+'</span>' +
+    (quizAnswered===quizData.length ? ' — Quiz complete! 🎉' : '');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examples of Distributed Systems | Hour 2</title>
+<style>
+  :root{
+    --bg:#282a36; --bg-alt:#21222c; --panel:#2f3140; --panel-2:#343746; --border:#44475a;
+    --fg:#f8f8f2; --muted:#6272a4; --purple:#bd93f9; --pink:#ff79c6; --green:#50fa7b;
+    --cyan:#8be9fd; --orange:#ffb86c; --yellow:#f1fa8c; --red:#ff5555;
+    --radius:14px; --shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: radial-gradient(circle at 15% 10%, rgba(189,147,249,0.08), transparent 40%),
+                radial-gradient(circle at 85% 90%, rgba(80,250,123,0.06), transparent 40%),
+                var(--bg);
+    color:var(--fg); line-height:1.6; padding-bottom:80px;
+  }
+  code, pre, .mono{font-family:'Consolas','Fira Code','Courier New',monospace;}
+
+  .navdots{position:fixed; right:18px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:12px; z-index:999;}
+  .navdots a{width:12px; height:12px; border-radius:50%; background:var(--panel-2); border:1px solid var(--border); display:block; position:relative; transition:.25s;}
+  .navdots a:hover, .navdots a.active{background:var(--purple); box-shadow:0 0 12px var(--purple); transform:scale(1.25);}
+  .navdots a span{position:absolute; right:22px; top:50%; transform:translateY(-50%); background:var(--panel); color:var(--fg); padding:4px 10px; border-radius:6px; font-size:12px; white-space:nowrap; opacity:0; pointer-events:none; transition:.2s; border:1px solid var(--border);}
+  .navdots a:hover span{opacity:1;}
+  @media (max-width:900px){ .navdots{display:none;} }
+
+  .hero{padding:70px 8vw 50px; background:linear-gradient(160deg, var(--bg-alt) 0%, var(--bg) 60%); border-bottom:1px solid var(--border); position:relative; overflow:hidden;}
+  .hero::before{content:"⧉"; position:absolute; font-size:220px; font-weight:800; color:rgba(80,250,123,0.05); right:2vw; top:-40px; transform:rotate(-8deg);}
+  .eyebrow{color:var(--green); font-size:13px; letter-spacing:3px; text-transform:uppercase; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+  .eyebrow::before{content:"●"; color:var(--green); animation:pulse 1.8s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.3;}}
+  .hero h1{font-size:clamp(28px,4.2vw,48px); font-weight:800; background:linear-gradient(90deg, var(--fg), var(--cyan)); -webkit-background-clip:text; background-clip:text; color:transparent; margin-bottom:14px; max-width:900px;}
+  .hero p.sub{color:var(--muted); font-size:17px; max-width:680px;}
+  .hero-meta{display:flex; gap:14px; margin-top:26px; flex-wrap:wrap;}
+  .chip{background:var(--panel); border:1px solid var(--border); padding:7px 16px; border-radius:999px; font-size:13px; color:var(--fg); display:flex; align-items:center; gap:8px;}
+  .chip b{color:var(--purple);}
+
+  section{padding:56px 8vw; max-width:1300px; margin:0 auto; scroll-margin-top:24px;}
+  .section-tag{display:inline-flex; align-items:center; gap:10px; font-size:13px; font-weight:700; color:var(--bg); background:var(--purple); padding:6px 14px; border-radius:8px 8px 0 0; letter-spacing:1px;}
+  h2.section-title{font-size:clamp(22px,3vw,32px); font-weight:800; margin:6px 0 8px; border-bottom:2px solid var(--border); padding-bottom:16px;}
+  h2.section-title span{color:var(--muted); font-weight:500; font-size:16px; display:block; margin-top:6px;}
+  h3.sub-title{font-size:19px; font-weight:700; color:var(--cyan); margin:34px 0 14px; display:flex; align-items:center; gap:10px;}
+  h3.sub-title::before{content:"▍"; color:var(--pink);}
+  p.lead{color:#d3d5e6; margin-bottom:16px; max-width:900px;}
+
+  .example-card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:24px; margin:22px 0; box-shadow:var(--shadow);}
+  .example-head{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
+  .example-num{min-width:38px; height:38px; border-radius:10px; background:var(--purple); color:var(--bg); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px;}
+  .example-head h4{font-size:18px; color:var(--fg);}
+
+  .diagram-wrap{background:var(--bg-alt); border:1px solid var(--border); border-radius:var(--radius); padding:22px; margin:16px 0; overflow-x:auto;}
+  .diagram-title{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px; font-weight:700;}
+  .node-box{fill:var(--panel-2); stroke:var(--purple); stroke-width:1.5;}
+  svg text{font-family:'Segoe UI', sans-serif;}
+
+  .tag-list{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;}
+  .tag-list .rbadge{background:var(--bg-alt); border:1px solid var(--border); padding:5px 12px; border-radius:6px; font-size:12.5px; color:var(--cyan);}
+
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:16px;}
+  @media(max-width:850px){.two-col{grid-template-columns:1fr;}}
+  .bc-box{background:var(--bg-alt); border-radius:12px; padding:18px 20px; border:1px solid var(--border);}
+  .bc-box.benefits{border-left:3px solid var(--green);}
+  .bc-box.challenges{border-left:3px solid var(--red);}
+  .bc-box h5{font-size:14px; margin-bottom:10px;}
+  .bc-box.benefits h5{color:var(--green);}
+  .bc-box.challenges h5{color:var(--red);}
+  .bc-box ul{margin-left:18px; font-size:13.5px; color:#d3d5e6;}
+  .bc-box li{margin-bottom:5px;}
+
+  .cloud-badges{display:flex; flex-wrap:wrap; gap:10px; margin:18px 0;}
+  .cloud-chip{background:var(--panel-2); border:1px solid var(--border); padding:9px 18px; border-radius:999px; font-size:13.5px; display:flex; align-items:center; gap:8px; color:var(--fg);}
+  .cloud-chip .dot{width:8px; height:8px; border-radius:50%; background:var(--green);}
+
+  .code-panel{background:#1e1f29; border:1px solid var(--border); border-radius:var(--radius); margin:18px 0; overflow:hidden; box-shadow:var(--shadow);}
+  .code-head{display:flex; align-items:center; justify-content:space-between; background:#191a23; padding:10px 18px; border-bottom:1px solid var(--border);}
+  .code-head .dots{display:flex; gap:6px;}
+  .code-head .dots span{width:11px; height:11px; border-radius:50%; display:inline-block;}
+  .dots span:nth-child(1){background:#ff5f56;} .dots span:nth-child(2){background:#ffbd2e;} .dots span:nth-child(3){background:#27c93f;}
+  .code-filename{color:var(--muted); font-size:13px; font-family:monospace;}
+  .code-panel pre{padding:20px; overflow-x:auto; font-size:13.5px; line-height:1.7;}
+  .code-panel code{color:#e4e5f1;}
+  .kw{color:var(--pink);} .type{color:var(--cyan);} .str{color:var(--yellow);} .cmt{color:var(--muted); font-style:italic;} .fn{color:var(--green);} .num{color:var(--orange);}
+
+  .steps{counter-reset:step; margin:22px 0;}
+  .step{display:flex; gap:16px; margin-bottom:16px; align-items:flex-start; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px;}
+  .step .snum{counter-increment:step; min-width:30px; height:30px; border-radius:8px; background:var(--pink); color:var(--bg); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px;}
+  .step .snum::before{content:counter(step);}
+  .step h5{font-size:14.5px; color:var(--fg); margin-bottom:4px;}
+  .step p{font-size:13.5px; color:var(--muted);}
+
+  .output-box{background:#0d1117; border:1px solid #30363d; border-radius:10px; padding:16px 20px; font-family:monospace; font-size:13.5px; color:var(--green); margin-top:14px;}
+  .output-box .label{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; display:block;}
+
+  .key-concept{background:linear-gradient(135deg, rgba(189,147,249,0.1), rgba(80,250,123,0.06)); border:1px solid var(--purple); border-radius:var(--radius); padding:30px; margin-top:26px;}
+  .key-concept h3{color:var(--purple); margin-bottom:14px; font-size:18px;}
+
+  .exec-order{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:16px 0;}
+  .exec-order .ebox{background:var(--panel); border:1px solid var(--border); padding:10px 20px; border-radius:10px; font-family:monospace; font-size:13.5px; color:var(--cyan);}
+  .exec-order .earrow{color:var(--muted); font-size:18px;}
+
+  footer{text-align:center; padding:40px 8vw; color:var(--muted); font-size:13px; border-top:1px solid var(--border); margin-top:40px;}
+  ::-webkit-scrollbar{height:8px; width:8px;} ::-webkit-scrollbar-track{background:var(--bg-alt);} ::-webkit-scrollbar-thumb{background:var(--border); border-radius:10px;}
+</style>
+</head>
+<body>
+
+<div class="navdots">
+  <a href="#objectives"><span>Objectives</span></a>
+  <a href="#examples"><span>Real-World Examples</span></a>
+  <a href="#dbdist"><span>Distributed Database</span></a>
+  <a href="#cloud"><span>Cloud Computing</span></a>
+  <a href="#clientserver"><span>Java Client-Server</span></a>
+  <a href="#keyconcept"><span>Key Concept</span></a>
+</div>
+
+<div class="hero">
+  <div class="eyebrow">IT Training Module &nbsp;·&nbsp; Hour 2</div>
+  <h1>Examples of Distributed Systems</h1>
+  <p class="sub">From Google Search to UPI payments — recognizing distributed systems in everyday technology, then building a first real client-server network connection in Java.</p>
+  <div class="hero-meta">
+    <div class="chip">⏱ <b>Duration:</b>&nbsp;1 Hour</div>
+    <div class="chip">🎯 <b>Level:</b>&nbsp;Foundational</div>
+    <div class="chip">💻 <b>Hands-on:</b>&nbsp;Java Sockets</div>
+    <div class="chip">📘 <b>Module:</b>&nbsp;2 of Series</div>
+  </div>
+</div>
+
+<!-- ============ 2.1 OBJECTIVES ============ -->
+<section id="objectives">
+  <div class="section-tag">2.1</div>
+  <h2 class="section-title">Learning Objectives</h2>
+  <div class="example-card" style="margin-top:0;">
+    <p class="lead" style="margin:0;">Students should be able to <b style="color:var(--green)">identify distributed systems in everyday technology</b> — recognizing the distributed architecture behind the apps and services they already use daily.</p>
+  </div>
+</section>
+
+<!-- ============ 2.2 REAL-WORLD EXAMPLES ============ -->
+<section id="examples">
+  <div class="section-tag">2.2</div>
+  <h2 class="section-title">Real-World Examples</h2>
+
+  <!-- Example 1: Google Search -->
+  <div class="example-card">
+    <div class="example-head"><div class="example-num">1</div><h4>Google Search</h4></div>
+    <div class="diagram-wrap">
+      <div class="diagram-title">Search Request Flow</div>
+      <svg viewBox="0 0 400 260" width="100%" height="260">
+        <defs><marker id="a1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker></defs>
+        <rect x="140" y="10" width="120" height="42" rx="9" class="node-box" style="stroke:var(--orange)"/><text x="200" y="36" text-anchor="middle" fill="var(--fg)" font-size="12.5">User</text>
+        <line x1="200" y1="52" x2="200" y2="80" stroke="var(--muted)" stroke-width="2" marker-end="url(#a1)"/>
+        <rect x="110" y="80" width="180" height="42" rx="9" class="node-box" style="stroke:var(--pink)"/><text x="200" y="106" text-anchor="middle" fill="var(--fg)" font-size="12">Search Request</text>
+        <line x1="200" y1="122" x2="200" y2="150" stroke="var(--muted)" stroke-width="2" marker-end="url(#a1)"/>
+        <rect x="120" y="150" width="160" height="42" rx="9" class="node-box" style="stroke:var(--purple)"/><text x="200" y="176" text-anchor="middle" fill="var(--fg)" font-size="12">Load Balancer</text>
+
+        <line x1="200" y1="192" x2="60" y2="215" stroke="var(--muted)" stroke-width="1.5"/>
+        <line x1="200" y1="192" x2="200" y2="215" stroke="var(--muted)" stroke-width="1.5"/>
+        <line x1="200" y1="192" x2="340" y2="215" stroke="var(--muted)" stroke-width="1.5"/>
+        <rect x="10" y="215" width="100" height="38" rx="8" class="node-box" style="stroke:var(--green)"/><text x="60" y="238" text-anchor="middle" fill="var(--fg)" font-size="11.5">Node 1</text>
+        <rect x="150" y="215" width="100" height="38" rx="8" class="node-box" style="stroke:var(--green)"/><text x="200" y="238" text-anchor="middle" fill="var(--fg)" font-size="11.5">Node 2</text>
+        <rect x="290" y="215" width="100" height="38" rx="8" class="node-box" style="stroke:var(--green)"/><text x="340" y="238" text-anchor="middle" fill="var(--fg)" font-size="11.5">Node 3</text>
+      </svg>
+      <p style="font-size:12.5px; color:var(--muted); text-align:center; margin-top:8px;">All three nodes route into a shared <b style="color:var(--cyan)">Distributed Index</b> spanning many machines.</p>
+    </div>
+  </div>
+
+  <!-- Example 2: YouTube -->
+  <div class="example-card">
+    <div class="example-head"><div class="example-num">2</div><h4>YouTube</h4></div>
+    <p class="lead" style="margin-bottom:6px;">Video delivery involves multiple cooperating subsystems:</p>
+    <div class="tag-list">
+      <span class="rbadge">upload servers</span><span class="rbadge">storage systems</span><span class="rbadge">encoding systems</span>
+      <span class="rbadge">databases</span><span class="rbadge">recommendation systems</span><span class="rbadge">CDN nodes</span>
+    </div>
+  </div>
+
+  <!-- Example 3: Banking -->
+  <div class="example-card">
+    <div class="example-head"><div class="example-num">3</div><h4>Banking</h4></div>
+    <div class="diagram-wrap">
+      <div class="diagram-title">ATM Transaction Flow</div>
+      <svg viewBox="0 0 260 320" width="100%" height="300">
+        <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker></defs>
+        <g font-size="12" text-anchor="middle" fill="var(--fg)">
+          <rect x="60" y="5" width="140" height="40" rx="9" class="node-box" style="stroke:var(--orange)"/><text x="130" y="30">ATM</text>
+          <rect x="60" y="60" width="140" height="40" rx="9" class="node-box" style="stroke:var(--pink)"/><text x="130" y="85">Bank Network</text>
+          <rect x="60" y="115" width="140" height="40" rx="9" class="node-box" style="stroke:var(--purple)"/><text x="130" y="140">Authentication</text>
+          <rect x="60" y="170" width="140" height="40" rx="9" class="node-box" style="stroke:var(--green)"/><text x="130" y="195">Account Service</text>
+          <rect x="50" y="225" width="160" height="40" rx="9" class="node-box" style="stroke:var(--cyan)"/><text x="130" y="250">Transaction DB</text>
+          <rect x="55" y="280" width="150" height="35" rx="9" class="node-box" style="stroke:var(--red)"/><text x="130" y="302">Fraud Detection</text>
+        </g>
+        <line x1="130" y1="45" x2="130" y2="58" stroke="var(--muted)" stroke-width="2" marker-end="url(#a2)"/>
+        <line x1="130" y1="100" x2="130" y2="113" stroke="var(--muted)" stroke-width="2" marker-end="url(#a2)"/>
+        <line x1="130" y1="155" x2="130" y2="168" stroke="var(--muted)" stroke-width="2" marker-end="url(#a2)"/>
+        <line x1="130" y1="210" x2="130" y2="223" stroke="var(--muted)" stroke-width="2" marker-end="url(#a2)"/>
+        <line x1="130" y1="265" x2="130" y2="278" stroke="var(--muted)" stroke-width="2" marker-end="url(#a2)"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Example 4: UPI -->
+  <div class="example-card">
+    <div class="example-head"><div class="example-num">4</div><h4>UPI / Digital Payments</h4></div>
+    <div class="diagram-wrap">
+      <div class="diagram-title">A Transaction May Involve</div>
+      <svg viewBox="0 0 700 100" width="100%" height="100">
+        <defs><marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--purple)"/></marker></defs>
+        <g font-size="11.5" text-anchor="middle" fill="var(--fg)">
+          <rect x="0" y="30" width="105" height="42" rx="8" class="node-box" style="stroke:var(--pink)"/><text x="52" y="55">Customer App</text>
+          <rect x="130" y="30" width="105" height="42" rx="8" class="node-box" style="stroke:var(--orange)"/><text x="182" y="55">Payment GW</text>
+          <rect x="260" y="30" width="90" height="42" rx="8" class="node-box" style="stroke:var(--green)"/><text x="305" y="55">Bank A</text>
+          <rect x="375" y="30" width="115" height="42" rx="8" class="node-box" style="stroke:var(--cyan)"/><text x="432" y="55">Payment Network</text>
+          <rect x="515" y="30" width="90" height="42" rx="8" class="node-box" style="stroke:var(--green)"/><text x="560" y="55">Bank B</text>
+          <rect x="630" y="30" width="70" height="42" rx="8" class="node-box" style="stroke:var(--yellow)"/><text x="665" y="55">Merchant</text>
+        </g>
+        <g stroke="var(--purple)" stroke-width="1.6" marker-end="url(#a3)">
+          <line x1="105" y1="51" x2="128" y2="51"/><line x1="235" y1="51" x2="258" y2="51"/><line x1="350" y1="51" x2="373" y2="51"/>
+          <line x1="490" y1="51" x2="513" y2="51"/><line x1="605" y1="51" x2="628" y2="51"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Example 5: E-commerce -->
+  <div class="example-card">
+    <div class="example-head"><div class="example-num">5</div><h4>E-commerce (Amazon-like Architecture)</h4></div>
+    <div class="diagram-wrap">
+      <div class="diagram-title">Service Breakdown</div>
+      <svg viewBox="0 0 460 240" width="100%" height="240">
+        <defs><marker id="a4" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker></defs>
+        <rect x="170" y="5" width="120" height="42" rx="9" class="node-box" style="stroke:var(--orange)"/><text x="230" y="31" text-anchor="middle" fill="var(--fg)" font-size="12.5">Client</text>
+        <line x1="230" y1="47" x2="230" y2="75" stroke="var(--muted)" stroke-width="2" marker-end="url(#a4)"/>
+        <rect x="150" y="75" width="160" height="42" rx="9" class="node-box" style="stroke:var(--pink)"/><text x="230" y="101" text-anchor="middle" fill="var(--fg)" font-size="12.5">API Gateway</text>
+
+        <line x1="230" y1="117" x2="70" y2="150" stroke="var(--muted)" stroke-width="1.5"/>
+        <line x1="230" y1="117" x2="230" y2="150" stroke="var(--muted)" stroke-width="1.5"/>
+        <line x1="230" y1="117" x2="390" y2="150" stroke="var(--muted)" stroke-width="1.5"/>
+
+        <g font-size="12" text-anchor="middle" fill="var(--fg)">
+          <rect x="10" y="150" width="120" height="42" rx="9" class="node-box" style="stroke:var(--green)"/><text x="70" y="176">Product Service</text>
+          <rect x="170" y="150" width="120" height="42" rx="9" class="node-box" style="stroke:var(--green)"/><text x="230" y="176">Order Service</text>
+          <rect x="330" y="150" width="120" height="42" rx="9" class="node-box" style="stroke:var(--green)"/><text x="390" y="176">Payment Service</text>
+
+          <rect x="10" y="205" width="120" height="32" rx="8" class="node-box" style="stroke:var(--cyan)"/><text x="70" y="226" font-size="11">Database</text>
+          <rect x="170" y="205" width="120" height="32" rx="8" class="node-box" style="stroke:var(--cyan)"/><text x="230" y="226" font-size="11">Database</text>
+          <rect x="330" y="205" width="120" height="32" rx="8" class="node-box" style="stroke:var(--cyan)"/><text x="390" y="226" font-size="11">Payment System</text>
+        </g>
+        <line x1="70" y1="192" x2="70" y2="203" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#a4)"/>
+        <line x1="230" y1="192" x2="230" y2="203" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#a4)"/>
+        <line x1="390" y1="192" x2="390" y2="203" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#a4)"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2.3 DISTRIBUTED DATABASE ============ -->
+<section id="dbdist">
+  <div class="section-tag">2.3</div>
+  <h2 class="section-title">Distributed Database<span>A database can also be distributed — not just application servers</span></h2>
+  <div class="diagram-wrap">
+    <div class="diagram-title">Geo-Distributed Database Example</div>
+    <svg viewBox="0 0 460 160" width="100%" height="160">
+      <defs><marker id="a5" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker></defs>
+      <rect x="170" y="5" width="120" height="42" rx="9" class="node-box" style="stroke:var(--orange)"/><text x="230" y="31" text-anchor="middle" fill="var(--fg)" font-size="12.5">Application</text>
+      <line x1="230" y1="47" x2="70" y2="90" stroke="var(--muted)" stroke-width="1.5"/>
+      <line x1="230" y1="47" x2="230" y2="90" stroke="var(--muted)" stroke-width="1.5"/>
+      <line x1="230" y1="47" x2="390" y2="90" stroke="var(--muted)" stroke-width="1.5"/>
+      <g font-size="12" text-anchor="middle" fill="var(--fg)">
+        <rect x="10" y="90" width="120" height="42" rx="9" class="node-box" style="stroke:var(--green)"/><text x="70" y="116">DB India</text>
+        <rect x="170" y="90" width="120" height="42" rx="9" class="node-box" style="stroke:var(--cyan)"/><text x="230" y="116">DB Europe</text>
+        <rect x="330" y="90" width="120" height="42" rx="9" class="node-box" style="stroke:var(--pink)"/><text x="390" y="116">DB USA</text>
+      </g>
+    </svg>
+  </div>
+  <div class="two-col">
+    <div class="bc-box benefits">
+      <h5>✅ Benefits</h5>
+      <ul><li>Lower latency</li><li>Scalability</li><li>Geographic availability</li></ul>
+    </div>
+    <div class="bc-box challenges">
+      <h5>⚠ Challenges</h5>
+      <ul><li>Consistency</li><li>Replication</li><li>Synchronization</li></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2.4 CLOUD COMPUTING ============ -->
+<section id="cloud">
+  <div class="section-tag">2.4</div>
+  <h2 class="section-title">Cloud Computing<span>Cloud applications are often distributed by design</span></h2>
+  <div class="cloud-badges">
+    <div class="cloud-chip"><span class="dot"></span>AWS</div>
+    <div class="cloud-chip"><span class="dot"></span>Microsoft Azure</div>
+    <div class="cloud-chip"><span class="dot"></span>Google Cloud</div>
+    <div class="cloud-chip"><span class="dot"></span>Kubernetes Clusters</div>
+  </div>
+  <p class="lead">A modern cloud-native application may consist of:</p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">Kubernetes-style Deployment</div>
+    <svg viewBox="0 0 400 200" width="100%" height="200">
+      <defs><marker id="a6" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker></defs>
+      <rect x="140" y="5" width="120" height="42" rx="9" class="node-box" style="stroke:var(--orange)"/><text x="200" y="31" text-anchor="middle" fill="var(--fg)" font-size="12">Load Balancer</text>
+      <line x1="200" y1="47" x2="200" y2="75" stroke="var(--muted)" stroke-width="2" marker-end="url(#a6)"/>
+      <rect x="100" y="75" width="200" height="42" rx="9" class="node-box" style="stroke:var(--purple)"/><text x="200" y="101" text-anchor="middle" fill="var(--fg)" font-size="12">Kubernetes Cluster</text>
+
+      <line x1="200" y1="117" x2="90" y2="150" stroke="var(--muted)" stroke-width="1.5"/>
+      <line x1="200" y1="117" x2="200" y2="150" stroke="var(--muted)" stroke-width="1.5"/>
+      <line x1="200" y1="117" x2="310" y2="150" stroke="var(--muted)" stroke-width="1.5"/>
+      <g font-size="12" text-anchor="middle" fill="var(--fg)">
+        <rect x="40" y="150" width="100" height="38" rx="8" class="node-box" style="stroke:var(--green)"/><text x="90" y="173">Pod</text>
+        <rect x="150" y="150" width="100" height="38" rx="8" class="node-box" style="stroke:var(--green)"/><text x="200" y="173">Pod</text>
+        <rect x="260" y="150" width="100" height="38" rx="8" class="node-box" style="stroke:var(--green)"/><text x="310" y="173">Pod</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ============ 2.5 JAVA CLIENT-SERVER ============ -->
+<section id="clientserver">
+  <div class="section-tag">2.5</div>
+  <h2 class="section-title">Simple Java Client-Server Example<span>Now move from simulation to actual network communication</span></h2>
+
+  <h3 class="sub-title">Step-by-Step Implementation</h3>
+  <div class="steps">
+    <div class="step"><div class="snum"></div><div><h5>Create a ServerSocket on port 5000</h5><p>This opens a listening endpoint that waits for an incoming client connection.</p></div></div>
+    <div class="step"><div class="snum"></div><div><h5>Block on accept()</h5><p>The server pauses execution until a client actually connects — a real network handshake.</p></div></div>
+    <div class="step"><div class="snum"></div><div><h5>Read from the socket's input stream</h5><p>Wrap the stream in a <code class="mono">BufferedReader</code> and read the line the client sends.</p></div></div>
+    <div class="step"><div class="snum"></div><div><h5>Create the Client and connect</h5><p>The client opens a <code class="mono">Socket</code> to <code class="mono">"localhost"</code> on the same port, 5000.</p></div></div>
+    <div class="step"><div class="snum"></div><div><h5>Write a message via PrintWriter</h5><p>The client sends a line of text over the socket's output stream to the server.</p></div></div>
+    <div class="step"><div class="snum"></div><div><h5>Run server first, then client</h5><p>The server must be listening before the client attempts to connect, or the connection will be refused.</p></div></div>
+  </div>
+
+  <div class="code-panel">
+    <div class="code-head"><div class="dots"><span></span><span></span><span></span></div><div class="code-filename">Server.java</div></div>
+    <pre><code><span class="kw">import</span> java.io.*;
+<span class="kw">import</span> java.net.*;
+
+<span class="kw">public class</span> <span class="type">Server</span> {
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) <span class="kw">throws</span> <span class="type">Exception</span> {
+
+        <span class="type">ServerSocket</span> serverSocket = <span class="kw">new</span> <span class="type">ServerSocket</span>(<span class="num">5000</span>);
+
+        System.out.println(<span class="str">"Server started..."</span>);
+        System.out.println(<span class="str">"Waiting for client..."</span>);
+
+        <span class="type">Socket</span> socket = serverSocket.accept();
+
+        <span class="type">BufferedReader</span> input =
+                <span class="kw">new</span> <span class="type">BufferedReader</span>(
+                        <span class="kw">new</span> <span class="type">InputStreamReader</span>(socket.getInputStream()));
+
+        <span class="type">String</span> message = input.readLine();
+
+        System.out.println(<span class="str">"Client says: "</span> + message);
+
+        socket.close();
+        serverSocket.close();
+    }
+}</code></pre>
+  </div>
+
+  <div class="code-panel">
+    <div class="code-head"><div class="dots"><span></span><span></span><span></span></div><div class="code-filename">Client.java</div></div>
+    <pre><code><span class="kw">import</span> java.io.*;
+<span class="kw">import</span> java.net.*;
+
+<span class="kw">public class</span> <span class="type">Client</span> {
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) <span class="kw">throws</span> <span class="type">Exception</span> {
+
+        <span class="type">Socket</span> socket = <span class="kw">new</span> <span class="type">Socket</span>(<span class="str">"localhost"</span>, <span class="num">5000</span>);
+
+        <span class="type">PrintWriter</span> output =
+                <span class="kw">new</span> <span class="type">PrintWriter</span>(socket.getOutputStream(), <span class="kw">true</span>);
+
+        output.println(<span class="str">"Hello Distributed System!"</span>);
+
+        socket.close();
+    }
+}</code></pre>
+  </div>
+
+  <h3 class="sub-title">Execution Order</h3>
+  <div class="exec-order">
+    <div class="ebox">1️⃣ &nbsp;javac / run Server.java</div>
+    <div class="earrow">→</div>
+    <div class="ebox">2️⃣ &nbsp;javac / run Client.java</div>
+  </div>
+
+  <div class="output-box">
+    <span class="label">Console Output (Server)</span>
+    Server started...<br>
+    Waiting for client...<br>
+    Client says: Hello Distributed System!
+  </div>
+</section>
+
+<!-- ============ KEY CONCEPT ============ -->
+<section id="keyconcept">
+  <div class="section-tag" style="background:var(--green); color:var(--bg);">Key Concept</div>
+  <h2 class="section-title">Your First Real Distributed Interaction</h2>
+  <div class="key-concept">
+    <h3>🔑 What Just Happened</h3>
+    <p class="lead" style="margin-bottom:20px;">Unlike Hour 1's single-JVM simulation, this involved <b style="color:var(--green)">two separate processes</b> communicating over an actual <b style="color:var(--cyan)">network socket</b> — the foundational primitive behind every distributed system.</p>
+    <div class="diagram-wrap" style="margin:0;">
+      <svg viewBox="0 0 500 130" width="100%" height="130">
+        <defs><marker id="a7" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--green)"/></marker></defs>
+        <rect x="10" y="20" width="150" height="50" rx="10" class="node-box" style="stroke:var(--pink)"/>
+        <text x="85" y="42" text-anchor="middle" fill="var(--fg)" font-size="13">Process 1</text>
+        <text x="85" y="60" text-anchor="middle" fill="var(--muted)" font-size="11">(Client)</text>
+
+        <rect x="340" y="20" width="150" height="50" rx="10" class="node-box" style="stroke:var(--cyan)"/>
+        <text x="415" y="42" text-anchor="middle" fill="var(--fg)" font-size="13">Process 2</text>
+        <text x="415" y="60" text-anchor="middle" fill="var(--muted)" font-size="11">(Server)</text>
+
+        <line x1="160" y1="45" x2="338" y2="45" stroke="var(--green)" stroke-width="2" marker-end="url(#a7)"/>
+        <text x="250" y="35" text-anchor="middle" fill="var(--green)" font-size="11.5">network message</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<footer>Examples of Distributed Systems &middot; Hour 2 &middot; IT Training Series</footer>
+
+<script>
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.navdots a');
+  const setActive = () => {
+    let current = sections[0].id;
+    sections.forEach(sec => { if (window.scrollY >= sec.offsetTop - 140) current = sec.id; });
+    navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + current));
+  };
+  window.addEventListener('scroll', setActive);
+  setActive();
+</script>
+
+</body>
+</html>
